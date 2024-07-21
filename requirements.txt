@@ -1,0 +1,14 @@
+keras==2.10.0
+opencv==4.9.0
+pillow==10.3.0
+tensorflow==2.10.1
+progressbar2==4.4.2
+matplotlib==3.8.4
+numpy==1.26.4
+tesnorboard==2.10.1
+shapely==2.0.1
+keras_resnet==0.2.0
+pyclipper==1.3.0.post3
+imgaug==0.4.0
+arabic_reshaper==3.0.0
+python-bidi==0.4.2
