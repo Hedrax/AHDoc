@@ -4,17 +4,22 @@ import cv2
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.layers.experimental.preprocessing import StringLookup
+import math
+from config import OCRConfig
 
 
 
-def resize_image(image, target_height, max_width):
+def resize_image(image, target_height, max_width, free=False):
     # Calculate the aspect ratio
     aspect_ratio = image.shape[1] / image.shape[0]
     
     # Resize the image to have a height of 64 pixels
     new_width = int(target_height * aspect_ratio)
     resized_image = cv2.resize(image, (new_width, target_height))
-    
+
+    if (free):
+        return resized_image
+        
     # If the width exceeds the max width, scale down to max width
     if new_width > max_width:
         resized_image = cv2.resize(resized_image, (max_width, target_height))
@@ -33,8 +38,31 @@ def vectorize_label(label, char_to_num, cfg):
     label = tf.pad(label, paddings=[[0, pad_amount]], constant_values=cfg.PADDING_TOKEN)
     return label
 
+def generate_random_polygon(image_shape, num_points=5):
+    h, w, _ = image_shape
+    points = []
+    for _ in range(num_points):
+        x = np.random.randint(0, w)
+        y = np.random.randint(0, h)
+        points.append([x, y])
+    return np.array(points, np.int32).reshape((-1, 1, 2))
 
-def generate(cfg, type = 'train', input2= False):
+def draw_random_drops(image, num_drops, drop_radius, alpha):
+    h, w, _ = image.shape
+    
+    x = np.random.randint(0, w - 1, size=num_drops).tolist()
+    y = np.random.randint(0, h - 1, size=num_drops).tolist()
+    
+    overlay = image.copy()
+    
+    for i in range(num_drops):
+        cv2.circle(overlay, (x[i], y[i]), drop_radius, (0, 0, 0, int(alpha * 255)), -1)
+    
+    # Blend the overlay with the original image
+    cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+
+
+def generate(cfg, type = 'train', input2= False, valid_aug=False):
 
     match type:
         case 'train':
@@ -51,7 +79,7 @@ def generate(cfg, type = 'train', input2= False):
     char_to_num = StringLookup(vocabulary=cfg.characters, mask_token=None)
     
     with open(osp.join(data_dir, 'labels.txt'), encoding="utf-8") as f:
-         #format :: 1_gtLabel
+        #format :: 1_gtLabel
         read = f.readlines()
 
         for i in range (len(read)):
@@ -95,20 +123,78 @@ def generate(cfg, type = 'train', input2= False):
         # Read the images
         image = cv2.imread(data_dir+image_paths[current_idx])
         label = labels[current_idx]
+
+        #defining max height
+        max_height = image.shape[0]
+        
+        random_idx = np.random.randint(0, dataset_size, size=num_of_words).tolist()
         for i in range(1, num_of_words):
-            random_idx = np.random.randint(1, dataset_size)
-            image2 = cv2.imread(data_dir+image_paths[random_idx])
+            image2 = cv2.imread(data_dir+image_paths[random_idx[i]])
+
+            #making sure both have same height
+            if (max_height > image2.shape[0]):
+                image2 = resize_image(image2, max_height, 0, True)
+            else:
+                max_height = image2.shape[0]
+                image = resize_image(image, max_height, 0, True)
 
             #some white space
             padding_width = 5 
-            white_space = np.ones((image.shape[0], padding_width, 3), dtype=np.uint8) * 255
+            white_space = np.ones((max_height, padding_width, 3), dtype=np.uint8) * 255
 
             # Concatenate the images horizontally
             image = np.hstack((image2, white_space, image))
-            label += ' ' + labels[random_idx]
+            label += ' ' + labels[random_idx[i]]
         
         
         image = resize_image(image, cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH)
+
+        #Data Augmentation
+        if (valid_aug):
+            height, width = cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH
+            random_list = np.random.randint(0, 2, size=5).tolist()
+            #add noise
+            if (random_list[0]):
+                draw_random_drops(image, cfg.NUM_OF_DROPS, cfg.DROPS_RADIUS, cfg.DROPS_ALPHA)
+            
+            #draw shapes
+            if (random_list[1]):
+                polygon_points = generate_random_polygon(image.shape)
+                overlay = image.copy()
+                
+                color = cfg.POLYGON_COLOR  
+                alpha = cfg.POLYGON_ALPHA  # Transparency factor
+                
+                cv2.fillPoly(overlay, [polygon_points], color)
+                image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
+            
+            #rotate with max 15 degrees
+            if (random_list[2]):
+                
+                angle = np.random.uniform(-cfg.MAX_ROTATION_ANGLE, cfg.MAX_ROTATION_ANGLE)
+                
+                # Calculate the center of the image
+                center = (width // 2, height // 2)
+                
+                # Get the rotation matrix
+                rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+                
+                # Apply the rotation
+                image = cv2.warpAffine(image, rotation_matrix, (width, height), borderMode=cv2.BORDER_REPLICATE)
+
+            
+            #blur
+            if (random_list[3]):  
+                image = cv2.GaussianBlur(image, (5, 5), 0)
+
+                
+            
+            #dilute
+            if (random_list[3]):
+                kernel = np.ones((cfg.DILUTE_KERNAL_FACTOR, cfg.DILUTE_KERNAL_FACTOR), np.uint8)
+                image = cv2.dilate(image, kernel, iterations=1)
+                
+        
 
         #normalize image
         image = tf.cast(image, np.float32) / 255.0
