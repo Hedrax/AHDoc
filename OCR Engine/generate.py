@@ -41,11 +41,11 @@ def vectorize_label(label, char_to_num, cfg):
 def generate_random_polygon(image_shape, num_points=5):
     h, w, _ = image_shape
     points = []
-    for _ in range(num_points):
-        x = np.random.randint(0, w)
-        y = np.random.randint(0, h)
-        points.append([x, y])
-    return np.array(points, np.int32).reshape((-1, 1, 2))
+    
+    x = np.random.randint(0, w, size=num_points).tolist()
+    y = np.random.randint(0, h, size=num_points).tolist()
+    
+    return np.array([x,y], np.int32).reshape((-1, 1, 2))
 
 def draw_random_drops(image, num_drops, drop_radius, alpha):
     h, w, _ = image.shape
@@ -149,8 +149,11 @@ def generate(cfg, type = 'train', input2= False, valid_aug=False):
         
         image = resize_image(image, cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH)
 
+        #30% augmentend data
+        aug_key = (np.random.randint(0, 101) > cfg.CLEAN_DATA_PERCENTAGE)
+
         #Data Augmentation
-        if (valid_aug):
+        if (valid_aug and aug_key):
             height, width = cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH
             random_list = np.random.randint(0, 2, size=5).tolist()
             #add noise

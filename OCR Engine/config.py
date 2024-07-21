@@ -37,6 +37,8 @@ class OCRConfig(object):
     MAX_LEN = 106
     MAX_NUMBER_OF_WORDS = 10
     PADDING_TOKEN = 99  
+    
+    CLEAN_DATA_PERCENTAGE = 70
 
     #test
     TEST_STEPS = 32
@@ -47,13 +49,12 @@ class OCRConfig(object):
     #augmantation
     MAX_ROTATION_ANGLE = 4
     
-    NUM_OF_DROPS = 200
+    NUM_OF_DROPS = 400
     DROPS_RADIUS = 1
     DROPS_ALPHA = 0.5
 
     POLYGON_ALPHA = 0.5
     POLYGON_COLOR = (0, 0, 0)
-
     
     characters = [' ', 'ء', 'آ', 'أ', 'ؤ', 'إ', 'ئ', 'ا', 'ب', 'ة', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ'
                   , 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع'
