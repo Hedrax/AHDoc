@@ -24,13 +24,18 @@ class OCRConfig(object):
     #compile
     RESTORE_BEST_WEIGHTS = True
     SAVE_BEST_MODEL = True
+
+    # Adjust based on the dataset size after splitting
+    TOTAL_SAMPLES = 1000000
+    TRAIN_SPLIT = 0.81
+    VAL_SPLIT = 0.09
     
     
     #train
-    BATCH_SIZE = 32
+    BATCH_SIZE = 64
     EPOCHS = 100
-    STEPS_PER_EPOCH = 1844
-    VALIDATION_STEPS = 32
+    STEPS_PER_EPOCH = int(TOTAL_SAMPLES * TRAIN_SPLIT // BATCH_SIZE)
+    VALIDATION_STEPS = int(TOTAL_SAMPLES * VAL_SPLIT // BATCH_SIZE) if TOTAL_SAMPLES * VAL_SPLIT // BATCH_SIZE > 0 else 1
     PATIENCE = 10
     
     #generate
