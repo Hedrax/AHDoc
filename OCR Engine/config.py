@@ -19,7 +19,7 @@ class OCRConfig(object):
     DECAY_STEPS = 10000
     DECAY_RATE = 0.9
     PATIENCE_VALUE = 6
-    
+ 
     
     #compile
     RESTORE_BEST_WEIGHTS = True
@@ -42,7 +42,7 @@ class OCRConfig(object):
     MAX_LEN = 106
     MAX_NUMBER_OF_WORDS = 10
     PADDING_TOKEN = 99  
-    
+    WORD = False
     CLEAN_DATA_PERCENTAGE = 70
 
     #test
