@@ -6,6 +6,8 @@ from config import OCRConfig
 from tensorflow.keras.layers.experimental.preprocessing import StringLookup
 import numpy as np
 
+from keras_resnet.models import ResNet50
+
 cfg = OCRConfig()
 
 # Model definition
@@ -34,59 +36,79 @@ class SequenceAccuracy(Metric):
 
 
 class CTCLayer(KL.Layer):
-    def __init__(self, name=None):
-        super().__init__(name=name)
+    def __init__(self, trainable=True, **kwargs):
+        super(CTCLayer, self).__init__(trainable=trainable, **kwargs)
         self.loss_fn = keras.backend.ctc_batch_cost
 
     def call(self, y_true, y_pred):
+    
         batch_len = tf.cast(tf.shape(y_true)[0], dtype="int64")
         input_length = tf.cast(tf.shape(y_pred)[1], dtype="int64")
         label_length = tf.cast(tf.shape(y_true)[1], dtype="int64")
         input_length = input_length * tf.ones(shape=(batch_len, 1), dtype="int64")
         label_length = label_length * tf.ones(shape=(batch_len, 1), dtype="int64")
-        loss = self.loss_fn(y_true, y_pred, input_length, label_length)
+        loss =  self.loss_fn(y_true, y_pred, input_length, label_length)
+        
+
         self.add_loss(loss)
         return y_pred
 
+    def get_config(self):
+        config = super(CTCLayer, self).get_config()
+        return config
+
+        
 
 def get_prediction_model(model):
     prediction_model = keras.models.Model(
-        model.get_layer(name="image_input").input, model.get_layer(name="dense3").output)
+        model.get_layer(name="image").input, model.get_layer(name="dense3").output)
     return prediction_model
 
 
 
-def OCR_Model(cfg, type='train'):
+def OCR_Model(cfg, type='-'):
     
-    char_to_num = StringLookup(vocabulary=cfg.characters, mask_token=None)
+    input_img = keras.Input(shape=(cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH, 3), name="image")
+    labels = KL.Input(name="label", shape=(None,))
+
+    # conv block 1.
+    x = keras.layers.Conv2D(32,(3, 3),activation="relu",kernel_initializer="he_normal",padding="same",name="Conv1",)(input_img)
+    x = keras.layers.MaxPooling2D((2, 2), name="pool1")(x)
+    x = keras.layers.BatchNormalization()(x)
+
+    # conv block 2.
+    x = keras.layers.Conv2D(64,(3, 3),activation="relu",kernel_initializer="he_normal",padding="same",name="Conv2",)(x)
+    x = keras.layers.MaxPooling2D((2, 2), name="pool2")(x)
+    x = keras.layers.BatchNormalization()(x)
+    
+    # conv block 3.
+    x = keras.layers.Conv2D(128,(3, 3),activation="relu",kernel_initializer="he_normal",padding="same",name="Conv3",)(x)
+    # x = keras.layers.MaxPooling2D((2, 2), name="pool3")(x)
+    x = keras.layers.BatchNormalization()(x)
 
     
-    input_img = keras.Input(shape=(cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH, 3), name="image_input")
-    labels = KL.Input(name="label", shape=(None,))
+    x = tf.transpose(x, perm=[0, 2, 1, 3]) 
     
-    x = KL.Conv2D(32,(3, 3),activation="relu",kernel_initializer="he_normal",padding="same",name="Conv1",)(input_img)
-    x = KL.MaxPooling2D((2, 2), name="pool1")(x)
-    x = KL.BatchNormalization()(x)
+    #reshape depends on the last layer and max pooling values
+    new_shape = (x.shape[1], x.shape[2]*x.shape[3])
+    x = keras.layers.Reshape(target_shape=new_shape, name="reshape")(x)
     
-    new_shape = ((cfg.IMAGE_WIDTH // 2), (cfg.IMAGE_HEIGHT // 2) * 32)
-    x = KL.Reshape(target_shape=new_shape, name="reshape")(x)
+    #best #.units -> 64,32
+    x = keras.layers.Dense(64, activation="relu", name="dense2")(x)
+    x = keras.layers.BatchNormalization()(x)
     
-    x = KL.Dense(16, activation="relu", name="dense2")(x)
-    x = KL.BatchNormalization()(x)
     
-    x = KL.Bidirectional(keras.layers.LSTM(256, return_sequences=True, dropout=0.35))(x)
-    
-    final_dense = KL.Dense(len(cfg.characters) + 3, activation="softmax", name="dense3")(x)
-    
-    output = CTCLayer(name="ctc_loss")(labels, final_dense)
-    if (type == 'inference'):
-        model = keras.models.Model(
-            inputs=input_img, outputs=final_dense, name="OCR-ENGINE"
-        )
-    else:
-        model = keras.models.Model(
-            inputs=[input_img, labels], outputs=output, name="OCR-ENGINE"
-        )
+    x = keras.layers.Bidirectional(keras.layers.LSTM(128, return_sequences=True, dropout=0.3))(x)
+    x = keras.layers.Bidirectional(keras.layers.LSTM(256, return_sequences=True, dropout=0.3))(x)
+
+    #indicates the number of vocabulary in String_lookup(cfg.charachters) + 1
+    x = keras.layers.Dense(len(cfg.characters) + 3, activation="softmax", name="dense3")(x)
+    output = CTCLayer(name="ctc_loss")(labels, x)
+
+
+    model = keras.models.Model(
+        inputs=[input_img, labels], outputs=output, name="OCR-ENGINE"
+    )
         
     
     return model
