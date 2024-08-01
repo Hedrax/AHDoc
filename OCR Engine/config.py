@@ -9,11 +9,11 @@ class OCRConfig(object):
     TRAIN_DATA_PATH = './dataset/train/'
     VALIDATION_DATA_PATH = './dataset/val/'
     TEST_DATA_PATH = './dataset/test/'
-    
-    PRETRAINED_MODEL_PATH = './weights/best.h5'
-    
-    
-    
+
+    PRETRAINED_MODEL_PATH = './weights/best-3.h5'
+    PRETRAINED_MODEL_DIR = './weights/'
+
+
     #model config
     INIT_LEARNING_RATE = 0.0005
     DECAY_STEPS = 10000
@@ -54,12 +54,15 @@ class OCRConfig(object):
     #augmantation
     MAX_ROTATION_ANGLE = 4
     
-    NUM_OF_DROPS = 400
+    NUM_OF_DROPS = 200
     DROPS_RADIUS = 1
     DROPS_ALPHA = 0.5
 
-    POLYGON_ALPHA = 0.5
+    POLYGON_ALPHA = 0.35
     POLYGON_COLOR = (0, 0, 0)
+
+    BEAM_SEARCH_WIDTH = 50
+
     
     characters = [' ', 'ء', 'آ', 'أ', 'ؤ', 'إ', 'ئ', 'ا', 'ب', 'ة', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ'
                   , 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع'
