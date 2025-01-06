@@ -17,7 +17,11 @@ git clone https://github.com/Hedrax/AHDoc.git
 cd AHDoc/
 
 ```
-
+## How to use our pre-trained text detection model in ONNX format
+### Download the .onnx best weights
+* [Text Detection Model.onnx](https://drive.google.com/file/d/1ys_jcWokjk4aPqGB75dj3FRnj5IH3W2l/view?usp=sharing)  
+**Note: you will need Inference.py code to be able to turn the predictions into bounding boxes**
+  
 ## Data
 ### Text-Detection
 * [Arabic Documents OCR Dataset](https://www.kaggle.com/datasets/humansintheloop/arabic-documents-ocr-dataset)
@@ -77,7 +81,7 @@ We compare best-weights of universal model performance on our custom evaluation 
 
 
 ### OCR Module Performance Results
-our results on the TEST set of 18-fonts
+Our results on the TEST set of 18-fonts
 | \# | Number of Words | Solid Accuracy% |   | Salted Accuracy% |   | Bolded Accuracy% |   | Notes |
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |   |   | CRR | WRR | CRR | WRR | CRR | WRR |   |
@@ -117,3 +121,16 @@ our results on the TEST set of 18-fonts
 1. https://arxiv.org/abs/1911.08947
 2. https://github.com/zonasw/DBNet
 3. https://github.com/MhLiao/DB
+
+## Citation
+### If you used our work in your research feel free to cite us
+```
+@inproceedings{waly2024arabic,
+  title={Arabic Handwritten Document OCR Solution with Binarization and Adaptive Scale Fusion Detection},
+  author={Waly, Alhossien and Tarek, Bassant and Feteha, Ali and Yehia, Rewan and Amr, Gasser and Fares, Ahmed},
+  booktitle={2024 6th Novel Intelligent and Leading Emerging Sciences Conference (NILES)},
+  pages={316--319},
+  year={2024},
+  organization={IEEE}
+}
+```
